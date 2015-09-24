@@ -49,7 +49,7 @@ coreos:
       - name: 40-version.conf
         content: |
           [Service]
-          Environment="FLANNEL_VER=0.5.0"
+          Environment="FLANNEL_VER=0.5.3"
 
       - name: 50-network-config.conf
         content: |
