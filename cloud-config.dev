@@ -93,5 +93,7 @@ coreos:
       Type=oneshot
       RemainAfterExit=yes
       EnvironmentFile=/var/etc/environment
+
+      ExecStartPre=/bin/sh -c "until [ -d "$PROJECT_ENV_PATH/.git" ]; do sleep 10; done"
       ExecStart=/var/usr/bin/cerebelo service start $PROJECT_ENV_PATH
     command: start
