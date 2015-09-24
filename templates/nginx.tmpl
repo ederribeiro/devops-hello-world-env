@@ -1,0 +1,64 @@
+upstream php_backend {
+    least_conn;
+
+    server 127.0.0.1 down;
+
+{{ range getvs "/announce/services/php/*" }}
+    server {{ . }}:9000;
+{{ end }}
+
+    keepalive 8;
+}
+
+server {
+    listen 80 default_server;
+
+    server_name _;
+    root /data/hello-world/web;
+
+    location = /favicon.ico {
+        log_not_found off;
+        access_log off;
+    }
+
+    location = /robots.txt {
+        allow all;
+        log_not_found off;
+        access_log off;
+    }
+
+    location / {
+        try_files $uri /app.php$is_args$args;
+    }
+
+    location ~* \.(ogg|ogv|svg|svgz|eot|otf|woff|mp4|ttf|rss|atom|jpg|jpeg|gif|png|ico|zip|tgz|gz|rar|bz2|doc|xls|exe|ppt|tar|mid|midi|wav|bmp|rtf)$ {
+        access_log off;
+        log_not_found off;
+        expires max;
+    }
+
+    location ~ ^/app\.php(/|$) {
+        fastcgi_pass php_backend;
+        fastcgi_split_path_info ^(.+\.php)(/.*)$;
+
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+
+        fastcgi_keep_conn on;
+
+        internal;
+    }
+
+    error_log /var/log/nginx/error.log;
+    access_log /var/log/nginx/access.log;
+
+    # performance improvements
+    gzip on;
+    gzip_disable "MSIE [1-6]\.(?!.*SV1)";
+    gzip_http_version 1.1;
+    gzip_vary on;
+    gzip_comp_level 6;
+    gzip_proxied any;
+    gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript application/javascript text/x-js;
+    gzip_buffers 16 8k;
+}

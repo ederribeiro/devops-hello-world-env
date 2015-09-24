@@ -1,0 +1,18 @@
+[Unit]
+Description=php@%i presence service
+BindsTo=php@%i.service
+After=php@%i.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+RestartSec=10s
+EnvironmentFile=/etc/environment
+Environment="HOSTNAME=%H"
+Environment="INSTANCE=%i"
+Environment="SERVICE=php"
+ExecStart=/var/usr/bin/cerebelo announce
+ExecStop=/var/usr/bin/cerebelo announce rm
+
+[X-Fleet]
+MachineOf=php@%i.service

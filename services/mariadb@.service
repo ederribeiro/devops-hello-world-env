@@ -1,0 +1,31 @@
+[Unit]
+Description=mariadb
+Wants=mariadb-announce@%i.service
+After=docker.service
+
+[Service]
+TimeoutSec=0
+KillMode=none
+EnvironmentFile=/etc/environment
+Restart=always
+RestartSec=10s
+ExecStartPre=-/usr/bin/docker kill mariadb_%i
+ExecStartPre=-/usr/bin/docker rm mariadb_%i
+ExecStartPre=/usr/bin/docker pull diegomarangoni/mariadb-galera
+
+ExecStart=/usr/bin/docker run \
+    --name mariadb_%i \
+    --rm \
+    --entrypoint=e \
+    -v /var/hello-world/env/config/mariadb/entrypoint.sh:/usr/local/bin/e \
+    -v /var/hello-world/env/config/mariadb/my.cnf:/etc/mysql/my.cnf \
+    -v /var/hello-world/env/config/mariadb/ssl/:/etc/ssl/mariadb/:ro \
+    -v /var/hello-world/env/var/data/mariadb/:/var/lib/mysql/ \
+    -e MYSQL_ALLOW_EMPTY_PASSWORD=true \
+    diegomarangoni/mariadb-galera
+
+ExecStop=/usr/bin/docker stop mariadb_%i
+
+[X-Fleet]
+Conflicts=mariadb@*.service
+MachineOf=hello-world@%i.service

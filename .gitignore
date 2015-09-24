@@ -1,0 +1,6 @@
+.DS_Store
+.vagrant
+cloud-config
+bin/vendor/*
+!bin/vendor/.gitkeep
+var/*

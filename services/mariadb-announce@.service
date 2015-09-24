@@ -1,0 +1,18 @@
+[Unit]
+Description=mariadb@%i presence service
+BindsTo=mariadb@%i.service
+After=mariadb@%i.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+RestartSec=10s
+EnvironmentFile=/etc/environment
+Environment="HOSTNAME=%H"
+Environment="INSTANCE=%i"
+Environment="SERVICE=mariadb"
+ExecStart=/var/usr/bin/cerebelo announce
+ExecStop=/var/usr/bin/cerebelo announce rm
+
+[X-Fleet]
+MachineOf=mariadb@%i.service

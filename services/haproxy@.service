@@ -1,0 +1,32 @@
+[Unit]
+Description=haproxy
+Wants=haproxy-config@%i.service
+
+[Service]
+TimeoutSec=0
+KillMode=none
+EnvironmentFile=/etc/environment
+Restart=always
+RestartSec=10s
+
+ExecStartPre=/usr/bin/touch /var/hello-world/env/var/confd/haproxy/main.cfg
+ExecStartPre=/usr/bin/touch /var/hello-world/env/var/confd/haproxy/main.cfg.confd
+
+ExecStartPre=-/usr/bin/docker kill haproxy_%i
+ExecStartPre=-/usr/bin/docker rm haproxy_%i
+ExecStartPre=/usr/bin/docker pull haproxy:1.5
+
+ExecStart=/usr/bin/docker run \
+    --name=haproxy_%i \
+    --rm \
+    -v /var/hello-world/env/config/haproxy/reload.sh:/haproxy-reload.sh \
+    -v /var/hello-world/env/var/confd/haproxy/main.cfg:/usr/local/etc/haproxy/haproxy.cfg \
+    -p 3306:3306 \
+    haproxy:1.5 \
+    haproxy -f /usr/local/etc/haproxy/haproxy.cfg
+
+ExecStop=/usr/bin/docker stop haproxy_%i
+
+[X-Fleet]
+Conflicts=haproxy@*.service
+MachineOf=hello-world@%i.service

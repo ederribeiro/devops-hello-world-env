@@ -1,0 +1,7 @@
+[template]
+src = "haproxy.tmpl"
+dest = "/var/hello-world/env/var/confd/haproxy/main.cfg.confd"
+keys = [ "/announce/services/mariadb" ]
+owner = "root"
+mode = "0644"
+reload_cmd = "/var/usr/bin/cerebelo reload $CONTAINER_ID /var/hello-world/env/var/confd/haproxy/main.cfg exec /haproxy-reload.sh"

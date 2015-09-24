@@ -1,0 +1,22 @@
+[Unit]
+Description=hello-world
+After=docker.service
+
+[Service]
+TimeoutSec=0
+KillMode=none
+EnvironmentFile=/etc/environment
+Type=oneshot
+RemainAfterExit=yes
+User=core
+ExecStartPre=-/usr/bin/docker kill helloworld_%i
+ExecStartPre=-/usr/bin/docker rm helloworld_%i
+ExecStartPre=/usr/bin/docker pull diegomarangoni/devops-hello-world-app
+
+ExecStart=/usr/bin/docker run \
+    --name=helloworld_%i \
+    -v /var/hello-world/env/var/data/app/:/var/www/hello-world/ \
+    diegomarangoni/devops-hello-world-app:latest
+
+[X-Fleet]
+MachineID=%i

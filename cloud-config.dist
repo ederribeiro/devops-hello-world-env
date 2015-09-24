@@ -1,0 +1,130 @@
+#cloud-config
+
+write_files:
+  - path: /var/usr/etc/environment
+    owner: core:core
+    permissions: 0644
+    content: |
+      PROJECT_ENV_PATH="/var/hello-world/env"
+      PROJECT_ENV_REPO="git@github.com:diegomarangoni/devops-hello-world-env.git"
+
+coreos:
+  etcd2:
+    # discovery: <replace_with_discovery_url>
+    advertise-client-urls: http://$private_ipv4:2379
+    initial-advertise-peer-urls: http://$private_ipv4:2380
+    listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
+    listen-peer-urls: http://$private_ipv4:2380
+    # initial-cluster: node1=http://internal_ip_node1:2380,node2=http://internal_ip_node2:2380,node3=http://internal_ip_node3:2380
+    # initial-cluster-state: existing
+
+  fleet:
+    public-ip: $private_ipv4
+    metadata: region=us-west-1,public_ip=$public_ipv4
+
+  flannel:
+    interface: $private_ipv4
+
+  units:
+    - name: cerebelo.service
+      content: |
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStartPre=/usr/bin/mkdir -p /var/usr/bin
+        ExecStart=/bin/sh -c "if [ ! -f /var/usr/bin/cerebelo ]; then wget https://gist.githubusercontent.com/diegomarangoni/51b1947f8023dd1a77e9/raw/ef08d4afd4df2ca87f59f94c3608e86ae5e29b60/cerebelo -O /var/usr/bin/cerebelo && chmod +x /var/usr/bin/cerebelo; fi"
+      command: start
+
+    - name: confd.service
+      content: |
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStartPre=/usr/bin/mkdir -p /var/usr/bin
+        ExecStart=/bin/sh -c "if [ ! -f /var/usr/bin/confd ]; then wget https://github.com/kelseyhightower/confd/releases/download/v0.10.0/confd-0.10.0-linux-amd64 -O /var/usr/bin/confd && chmod +x /var/usr/bin/confd; fi"
+      command: start
+
+    - name: flanneld.service
+      drop-ins:
+      - name: 40-version.conf
+        content: |
+          [Service]
+          Environment="FLANNEL_VER=0.5.0"
+
+      - name: 50-network-config.conf
+        content: |
+          [Service]
+          ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "10.20.0.0/16", "Backend": { "Type": "aws-vpc" } }'
+      command: start
+
+    - name: etcd2.service
+      command: start
+
+    - name: fleet.service
+      command: start
+
+    - name: docker-tcp.socket
+      content: |
+        [Socket]
+        ListenStream=2376
+        Service=docker.service
+        BindIPv6Only=both
+
+        [Install]
+        WantedBy=sockets.target
+      command: start
+      enable: true
+
+    - name: docker.service
+      drop-ins:
+      - name: 60-wait-for-flannel.conf
+        content: |
+          [Service]
+          Restart=always
+
+          [Unit]
+          After=flanneld.service
+          Requires=flanneld.service
+      command: restart
+
+    - name: git.service
+      content: |
+        [Service]
+        User=core
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStartPre=/bin/sh -c "touch /home/core/.ssh/known_hosts"
+        ExecStartPre=/bin/sh -c "grep -q '^github.com' /home/core/.ssh/known_hosts || echo 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==' >> /home/core/.ssh/known_hosts"
+        ExecStartPre=/bin/sh -c "grep -q '^bitbucket.org' /home/core/.ssh/known_hosts || echo 'bitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAubiN81eDcafrgMeLzaFPsw2kNvEcqTKl/VqLat/MaB33pZy0y3rJZtnqwR2qOOvbwKZYKiEO1O6VqNEBxKvJJelCq0dTXWT5pbO2gDXC6h6QDXCaHo6pOHGPUy+YBaGQRGuSusMEASYiWunYN0vCAI8QaXnWMXNMdFP3jHAJH0eDsoiGnLPBlBp4TNm6rYI74nMzgz3B9IikW4WVK+dc8KZJZWYjAuORU3jc1c/NPskD2ASinf8v3xnfXeukU0sJ5N6m5E8VLjObPEO+mN2t/FZTMZLiFqPWc/ALSqnMnnhwrNi2rbfg/rd/IpL8Le3pSBne8+seeFVBoGqzHM9yXw==' >> /home/core/.ssh/known_hosts"
+      command: start
+
+    - name: repository.service
+      content: |
+        [Unit]
+        After=git.service
+
+        [Service]
+        User=core
+        Type=oneshot
+        RemainAfterExit=yes
+        EnvironmentFile=/var/usr/etc/environment
+
+        ExecStartPre=/bin/sh -c "if [ ! -d $PROJECT_ENV_PATH ]; then sudo mkdir -p $PROJECT_ENV_PATH && sudo chown -R core:core $PROJECT_ENV_PATH; fi"
+        ExecStartPre=/bin/sh -c "if [ ! -d $PROJECT_ENV_PATH/.git ]; then cd $PROJECT_ENV_PATH && git clone $PROJECT_ENV_REPO .; fi"
+
+        ExecStart=/bin/sh -c "cd $PROJECT_ENV_PATH && git pull"
+      command: start
+
+    - name: environment.service
+      content: |
+        [Unit]
+        Requires=docker.service fleet.service
+        After=docker.service fleet.service
+        After=repository.service
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        EnvironmentFile=/var/usr/etc/environment
+        ExecStart=/var/usr/bin/cerebelo service start $PROJECT_ENV_PATH
+      command: start

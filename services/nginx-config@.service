@@ -1,0 +1,20 @@
+[Unit]
+Description=nginx@%i confd service
+After=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+RestartSec=10s
+EnvironmentFile=/etc/environment
+Environment="CONTAINER_ID=nginx_%i"
+
+ExecStartPre=/usr/bin/touch /var/hello-world/env/var/confd/nginx/default.conf
+ExecStartPre=/usr/bin/touch /var/hello-world/env/var/confd/nginx/default.conf.confd
+
+ExecStartPre=/bin/sh -c "until [ `etcdctl ls /announce/services/php | wc -l` -gt 0 ]; do sleep 5; done"
+
+ExecStart=/var/usr/bin/confd -interval 60 -confdir /var/hello-world/env -node 127.0.0.1:2379 -config-file /var/hello-world/env/conf.d/nginx.toml
+
+[X-Fleet]
+MachineOf=nginx@%i.service

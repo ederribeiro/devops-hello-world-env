@@ -1,0 +1,30 @@
+[Unit]
+Description=php
+Wants=php-announce@%i.service
+Requires=haproxy@%i.service
+Requires=hello-world@%i.service
+After=hello-world@%i.service
+
+[Service]
+TimeoutSec=0
+KillMode=none
+EnvironmentFile=/etc/environment
+Restart=always
+RestartSec=10s
+ExecStartPre=-/usr/bin/docker kill php_%i
+ExecStartPre=-/usr/bin/docker rm php_%i
+ExecStartPre=/usr/bin/docker pull diegomarangoni/php:fpm
+
+ExecStart=/usr/bin/docker run \
+    --name=php_%i \
+    --rm \
+    --volumes-from helloworld_%i \
+    --add-host host:${COREOS_PRIVATE_IPV4} \
+    diegomarangoni/php:fpm \
+    php-fpm
+
+ExecStop=/usr/bin/docker stop php_%i
+
+[X-Fleet]
+Conflicts=php@*.service
+MachineOf=hello-world@%i.service

@@ -1,0 +1,23 @@
+global
+    log 127.0.0.1 local0 notice
+    pidfile /var/run/haproxy.pid
+
+defaults
+    log global
+    retries 3
+    timeout connect 3000
+    timeout server 5000
+    timeout client 5000
+
+listen mysql
+    bind *:3306
+    mode tcp
+    option mysql-check user haproxy
+    balance roundrobin
+
+    server trick 127.0.0.1 disabled
+
+{{ range gets "/announce/services/mariadb/*" }}
+{{ $id := split (.Key) "/" }}
+    server node-{{ index $id 4 }} {{ .Value }}:3306 check
+{{ end }}

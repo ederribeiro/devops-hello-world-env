@@ -1,0 +1,97 @@
+#cloud-config
+
+write_files:
+  - path: /var/usr/etc/environment
+    owner: core:core
+    permissions: 0644
+    content: |
+      PROJECT_ENV_PATH="/var/hello-world/env"
+
+coreos:
+  etcd2:
+    discovery: https://discovery.etcd.io/new
+    advertise-client-urls: http://$private_ipv4:2379
+    initial-advertise-peer-urls: http://$private_ipv4:2380
+    listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
+    listen-peer-urls: http://$private_ipv4:2380
+
+  fleet:
+    public-ip: $private_ipv4
+
+  flannel:
+    interface: $public_ipv4
+
+  units:
+  - name: cerebelo.service
+    content: |
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStartPre=/usr/bin/mkdir -p /var/usr/bin
+      ExecStart=/bin/sh -c "if [ ! -f /var/usr/bin/cerebelo ]; then wget https://gist.githubusercontent.com/diegomarangoni/51b1947f8023dd1a77e9/raw/ef08d4afd4df2ca87f59f94c3608e86ae5e29b60/cerebelo -O /var/usr/bin/cerebelo && chmod +x /var/usr/bin/cerebelo; fi"
+    command: start
+
+  - name: confd.service
+    content: |
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStartPre=/usr/bin/mkdir -p /var/usr/bin
+      ExecStart=/bin/sh -c "if [ ! -f /var/usr/bin/confd ]; then wget https://github.com/kelseyhightower/confd/releases/download/v0.10.0/confd-0.10.0-linux-amd64 -O /var/usr/bin/confd && chmod +x /var/usr/bin/confd; fi"
+    command: start
+
+  - name: flanneld.service
+    drop-ins:
+    - name: 40-version.conf
+      content: |
+        [Service]
+        Environment="FLANNEL_VER=0.5.0"
+
+    - name: 50-network-config.conf
+      content: |
+        [Service]
+        ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "10.1.0.0/16" }'
+    command: start
+
+  - name: etcd2.service
+    command: start
+
+  - name: fleet.service
+    command: start
+
+  - name: docker-tcp.socket
+    content: |
+      [Socket]
+      ListenStream=2376
+      Service=docker.service
+      BindIPv6Only=both
+
+      [Install]
+      WantedBy=sockets.target
+    command: start
+    enable: true
+
+  - name: docker.service
+    drop-ins:
+    - name: 60-wait-for-flannel.conf
+      content: |
+        [Service]
+        Restart=always
+
+        [Unit]
+        After=flanneld.service
+        Requires=flanneld.service
+    command: restart
+
+  - name: environment.service
+    content: |
+      [Unit]
+      Requires=docker.service fleet.service
+      After=docker.service fleet.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      EnvironmentFile=/var/usr/etc/environment
+      ExecStart=/var/usr/bin/cerebelo service start $PROJECT_ENV_PATH
+    command: start

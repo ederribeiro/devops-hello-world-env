@@ -1,0 +1,7 @@
+[template]
+src = "nginx.tmpl"
+dest = "/var/hello-world/env/var/confd/nginx/default.conf.confd"
+keys = [ "/announce/services/php" ]
+owner = "root"
+mode = "0644"
+reload_cmd = "/var/usr/bin/cerebelo reload $CONTAINER_ID /var/hello-world/env/var/confd/nginx/default.conf kill"

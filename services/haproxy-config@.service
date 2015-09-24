@@ -1,0 +1,20 @@
+[Unit]
+Description=haproxy@%i confd service
+BindsTo=haproxy@%i.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+RestartSec=10s
+EnvironmentFile=/etc/environment
+Environment="CONTAINER_ID=haproxy_%i"
+
+ExecStartPre=/usr/bin/touch /var/hello-world/env/var/confd/haproxy/main.cfg
+ExecStartPre=/usr/bin/touch /var/hello-world/env/var/confd/haproxy/main.cfg.confd
+
+ExecStartPre=/bin/sh -c "until [ `etcdctl ls /announce/services/mariadb | wc -l` -gt 0 ]; do sleep 5; done"
+
+ExecStart=/var/usr/bin/confd -interval 60 -confdir /var/hello-world/env -node 127.0.0.1:2379 -config-file /var/hello-world/env/conf.d/haproxy.toml
+
+[X-Fleet]
+MachineOf=haproxy@%i.service
