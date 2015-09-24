@@ -6,7 +6,7 @@ write_files:
     permissions: 0644
     content: |
       PROJECT_ENV_PATH="/var/hello-world/env"
-      PROJECT_ENV_REPO="git@github.com:diegomarangoni/devops-hello-world-env.git"
+      PROJECT_ENV_REPO="https://github.com/diegomarangoni/devops-hello-world-env.git"
 
 coreos:
   etcd2:
