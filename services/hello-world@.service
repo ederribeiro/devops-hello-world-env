@@ -8,7 +8,9 @@ KillMode=none
 EnvironmentFile=/etc/environment
 Type=oneshot
 RemainAfterExit=yes
-User=core
+
+ExecStartPre=/usr/bin/mkdir -p /var/hello-world/env/var/data/app/
+
 ExecStartPre=-/usr/bin/docker kill helloworld_%i
 ExecStartPre=-/usr/bin/docker rm helloworld_%i
 ExecStartPre=/usr/bin/docker pull diegomarangoni/devops-hello-world-app

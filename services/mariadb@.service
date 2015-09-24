@@ -9,6 +9,9 @@ KillMode=none
 EnvironmentFile=/etc/environment
 Restart=always
 RestartSec=10s
+
+ExecStartPre=/usr/bin/mkdir -p /var/hello-world/env/var/data/mariadb/
+
 ExecStartPre=-/usr/bin/docker kill mariadb_%i
 ExecStartPre=-/usr/bin/docker rm mariadb_%i
 ExecStartPre=/usr/bin/docker pull diegomarangoni/mariadb-galera

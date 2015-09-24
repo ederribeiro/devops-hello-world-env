@@ -11,6 +11,7 @@ EnvironmentFile=/etc/environment
 Restart=always
 RestartSec=10s
 
+ExecStartPre=/usr/bin/mkdir -p /var/hello-world/env/var/confd/nginx/
 ExecStartPre=/usr/bin/touch /var/hello-world/env/var/confd/nginx/default.conf
 ExecStartPre=/usr/bin/touch /var/hello-world/env/var/confd/nginx/default.conf.confd
 

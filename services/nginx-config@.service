@@ -9,6 +9,7 @@ RestartSec=10s
 EnvironmentFile=/etc/environment
 Environment="CONTAINER_ID=nginx_%i"
 
+ExecStartPre=/usr/bin/mkdir -p /var/hello-world/env/var/confd/nginx/
 ExecStartPre=/usr/bin/touch /var/hello-world/env/var/confd/nginx/default.conf
 ExecStartPre=/usr/bin/touch /var/hello-world/env/var/confd/nginx/default.conf.confd
 
