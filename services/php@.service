@@ -23,6 +23,8 @@ ExecStart=/usr/bin/docker run \
     diegomarangoni/php:fpm \
     php-fpm
 
+ExecStartPost=-/usr/bin/docker exec php_%i bash -c "chmod -R 777 /var/www/hello-world/app/{cache,logs}"
+
 ExecStop=/usr/bin/docker stop php_%i
 
 [X-Fleet]
