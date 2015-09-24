@@ -28,7 +28,7 @@ coreos:
       Type=oneshot
       RemainAfterExit=yes
       ExecStartPre=/usr/bin/mkdir -p /var/usr/bin
-      ExecStart=/bin/sh -c "if [ ! -f /var/usr/bin/cerebelo ]; then wget https://gist.githubusercontent.com/diegomarangoni/51b1947f8023dd1a77e9/raw/ef08d4afd4df2ca87f59f94c3608e86ae5e29b60/cerebelo -O /var/usr/bin/cerebelo && chmod +x /var/usr/bin/cerebelo; fi"
+      ExecStart=/bin/sh -c "if [ ! -f /var/usr/bin/cerebelo ]; then wget https://gist.githubusercontent.com/diegomarangoni/51b1947f8023dd1a77e9/raw/0830b7576f71f3544e4758f139114f3b175b97bb/cerebelo -O /var/usr/bin/cerebelo && chmod +x /var/usr/bin/cerebelo; fi"
     command: start
 
   - name: confd.service
