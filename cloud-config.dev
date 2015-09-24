@@ -1,7 +1,7 @@
 #cloud-config
 
 write_files:
-  - path: /var/usr/etc/environment
+  - path: /var/etc/environment
     owner: core:core
     permissions: 0644
     content: |
@@ -92,6 +92,6 @@ coreos:
       [Service]
       Type=oneshot
       RemainAfterExit=yes
-      EnvironmentFile=/var/usr/etc/environment
+      EnvironmentFile=/var/etc/environment
       ExecStart=/var/usr/bin/cerebelo service start $PROJECT_ENV_PATH
     command: start
